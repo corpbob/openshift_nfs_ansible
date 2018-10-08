@@ -11,9 +11,12 @@ https://github.com/corpbob/openshift_ansible_vagrant
 ```
 git clone https://github.com/corpbob/openshift_nfs_ansible.git
 ```
-2. Edit the file nfs_pvc.yml. Modify the variable max_pv to a value you want. The default is 2.
 
-3. Run the ansible-playbook
+2. Copy the "hosts" file in the project openshift_ansible_vagrant to this directory. *Please see prerequisite above*
+
+3. Edit the file nfs_pvc.yml. Modify the variable max_pv to a value you want. The default is 2.
+
+4. Run the ansible-playbook
 
 ```
 ansible-playbook -i hosts nfs_pvc.yml
