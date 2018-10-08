@@ -6,6 +6,14 @@
 https://github.com/corpbob/openshift_ansible_vagrant
 
 ## Steps
+*Note: All commands will be executed in the bastion host*
+
+0. Login to the bastion host
+
+```
+ssh vagrant@10.1.3.4
+```
+
 1. Clone this repository
 
 ```
