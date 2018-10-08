@@ -46,6 +46,17 @@
       command: exportfs -a
       when: inventory_hostname == 'node1.10.1.3.3.nip.io'
 
+    - name: Fix the image for origin-recycler
+      lineinfile: 
+        path: /etc/sysconfig/origin-master-controllers
+        regexp: "OPENSHIFT_RECYCLER_IMAGE=\"openshift/origin-recycler:v3.9.0\""
+        line: "OPENSHIFT_RECYCLER_IMAGE=\"openshift/origin-recycler:v3.9.0\""
+      when: inventory_hostname == 'master.10.1.3.2.nip.io'
+
+    - name: Restart OpenShift controllers
+      command: systemctl restart origin-master-controllers
+      when: inventory_hostname == 'master.10.1.3.2.nip.io'
+
     - name: Create PV objects in OpenShift
       shell:
         cmd: |
