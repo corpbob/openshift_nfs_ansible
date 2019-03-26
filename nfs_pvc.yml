@@ -1,7 +1,9 @@
 ---
 - hosts: nodes
   vars:
-    max_pv: 2
+    max_pv: 100
+    nfs_server: "{{ groups['nfs_server'] }}"
+    master: "{{ groups['masters'] }}"
   tasks:
     - name: Install NFS to all nodes
       yum:
@@ -15,24 +17,28 @@
 
     - name: Enable  NFS server to node1
       command: systemctl enable nfs-server.service
-      when: inventory_hostname == 'node1.10.1.3.3.nip.io'
+      when: inventory_hostname in nfs_server
       
     - name: Start NFS server to node1
       command: systemctl start nfs-server.service
-      when: inventory_hostname == 'node1.10.1.3.3.nip.io'
+      when: inventory_hostname in nfs_server
 
     - name: Create Persistent Volume directory
       command: "mkdir -p /var/lib/origin/nfs/pv{{ item }}"
       with_sequence: "0-{{ max_pv }}"
-      when: inventory_hostname == 'node1.10.1.3.3.nip.io'
+      when: inventory_hostname in nfs_server
      
     - name: Set Owner of Persistent Volume Directory
-      command: chown -R nfsnobody.nfsnobody /var/lib/origin/nfs
-      when: inventory_hostname == 'node1.10.1.3.3.nip.io'
+      shell: |
+        chown -R nfsnobody.nfsnobody /var/lib/origin/nfs/pv{{ item }}
+      with_sequence: "0-{{ max_pv }}"
+      when: inventory_hostname in nfs_server
 
     - name: Set Permissions of Persistent Volume directory
-      command: chmod -R 770 /var/lib/origin/nfs
-      when: inventory_hostname == 'node1.10.1.3.3.nip.io'
+      shell: |
+        chmod -R 777 /var/lib/origin/nfs/pv{{ item }}
+      with_sequence: "0-{{ max_pv }}"
+      when: inventory_hostname in nfs_server
     
     - name: Add to /etc/exports file
       lineinfile:
@@ -40,22 +46,24 @@
         regexp: "/var/lib/origin/nfs/pv{{ item }} *(rw,root_squash)"    
         line: "/var/lib/origin/nfs/pv{{ item }} *(rw,root_squash)"
       with_sequence: "0-{{ max_pv }}"
-      when: inventory_hostname == 'node1.10.1.3.3.nip.io'
+      when: inventory_hostname in nfs_server
 
     - name: Export the filesystems
       command: exportfs -a
-      when: inventory_hostname == 'node1.10.1.3.3.nip.io'
+      when: inventory_hostname in nfs_server
 
-    - name: Fix the image for origin-recycler
-      lineinfile: 
-        path: /etc/sysconfig/origin-master-controllers
-        regexp: "OPENSHIFT_RECYCLER_IMAGE=\"openshift/origin-recycler:v3.9.0\""
-        line: "OPENSHIFT_RECYCLER_IMAGE=\"openshift/origin-recycler:v3.9.0\""
-      when: inventory_hostname == 'master.10.1.3.2.nip.io'
+    #- name: Fix the image for origin-recycler
+    #  lineinfile: 
+    #    path: /etc/sysconfig/origin-master-controllers
+    #    regexp: "OPENSHIFT_RECYCLER_IMAGE=\"openshift/origin-recycler:v3.9.0\""
+    #    line: "OPENSHIFT_RECYCLER_IMAGE=\"openshift/origin-recycler:v3.9.0\""
+    #  when: inventory_hostname == {{ master }}
 
-    - name: Restart OpenShift controllers
-      command: systemctl restart origin-master-controllers
-      when: inventory_hostname == 'master.10.1.3.2.nip.io'
+    #- name: Restart OpenShift controllers
+    #  shell: |
+    #      /usr/local/bin/master-restart api
+    #      /usr/local/bin/master-restart controllers
+    #  when: inventory_hostname in master
 
     - name: Create PV objects in OpenShift
       shell:
@@ -64,17 +72,19 @@
           apiVersion: v1
           kind: PersistentVolume
           metadata:
-            name: pv{{ item }}
+            name: pv-{{ item }}
           spec:
             capacity:
-              storage: 5Gi
+              storage: 100Gi
             accessModes:
             - ReadWriteOnce
+            - ReadWriteMany
+            - ReadOnlyMany
             nfs:
               path: /var/lib/origin/nfs/pv{{ item }}
-              server: 10.1.3.3
+              server: {{ nfs_server[0] }}
             persistentVolumeReclaimPolicy: Recycle
           EOF
       with_sequence: "0-{{ max_pv }}"
-      when: inventory_hostname == 'master.10.1.3.2.nip.io'
+      when: inventory_hostname in master
 
