@@ -88,3 +88,11 @@
       with_sequence: "0-{{ max_pv }}"
       when: inventory_hostname in master
 
+    - name: Allow NFS traffic
+      shell: 
+        cmd: |
+          firewall-cmd --permanent --add-service=nfs
+          firewall-cmd --permanent --add-service=mountd
+          firewall-cmd --permanent --add-service=rpc-bind
+          firewall-cmd --reload
+
