@@ -1,0 +1,16 @@
+[nfs_server]
+node1
+
+[masters]
+node1
+
+[nodes]
+node1
+node2
+node3
+node4
+
+[nodes:vars]
+ansible_ssh_user=your_account
+ansible_become=true
+
